@@ -32,4 +32,6 @@ public class ChatHub :Hub
   var messages = await _context.ChatMessages.OrderByDescending(m => m.SentAt).ToListAsync();
   await Clients.Caller.SendCoreAsync("LoadMessages",new object[] {messages} );
  }
+ public async Task Typing (string user){
+  await Clients.All.SendCoreAsync("Typing", new object[] { user });}
 }

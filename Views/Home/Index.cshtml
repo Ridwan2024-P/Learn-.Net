@@ -14,6 +14,7 @@
 <hr />
 <h3>Messages</h3>
 <ul id="messagesList"></ul>
+<p id="typingsStatus"></p>
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
     <script>
@@ -53,6 +54,18 @@
             .catch(function (error) {
                 console.error("SignalR Connection Error:", error);
 
+            });
+        connection.on("Typing", function (user) {
+            document.getElementById("typingsStatus").textContent = user + " is typing...";
+        })
+        document.getElementById("messageInput")
+            .addEventListener("input", function () {
+
+                const user = document.getElementById("userInput").value;
+
+                if (user.trim()) {
+                    connection.invoke("Typing", user);
+                }
             });
         document.getElementById("sendButton")
             .addEventListener("click", function () {
