@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using SignalRMvcDemo.Data;
 using SignalRMvcDemo.Models;
 
@@ -24,5 +25,11 @@ public class ChatHub :Hub
   await _context.SaveChangesAsync();
   
   await Clients.All.SendCoreAsync("ReceiveMessage", new object[] { user, message });
+ }
+
+ public async Task GetMessages()
+ {
+  var messages = await _context.ChatMessages.OrderByDescending(m => m.SentAt).ToListAsync();
+  await Clients.Caller.SendCoreAsync("LoadMessages",new object[] {messages} );
  }
 }

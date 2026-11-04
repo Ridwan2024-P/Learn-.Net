@@ -20,13 +20,23 @@
         "use strict";
         const connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").withAutomaticReconnect().build();
         connection.on("ReceiveMessage", function (user, message) {
+           addMessage(user, message);
+        })
+        connection.on("LoadMessages", function (messages) {
+            document.getElementById("messagesList").innerHTML = "";
+            messages.forEach(function (msg) {
+                addMessage(msg.user, msg.message);
+            });
+        });
+        function addMessage(user, message) {
             const li = document.createElement("li");
             li.textContent = `${user}: ${message}`;
             document.getElementById("messagesList").appendChild(li);
-        });
+        }
         connection.start()
             .then(function () {
-                console.log("SignalR Connected Successfully");
+                console.log("SignalR Connected Successfully")
+                return connection.invoke("GetMessages");
             })
             .catch(function (error) {
                 console.error("SignalR Connection Error:", error);
