@@ -24,7 +24,7 @@ public class ChatHub :Hub
   _context.ChatMessages.Add(chatMessage);
   await _context.SaveChangesAsync();
   
-  await Clients.All.SendCoreAsync("ReceiveMessage", new object[] { user, message });
+  await Clients.All.SendCoreAsync("ReceiveMessage", new object[] { user, message, chatMessage.SentAt });
  }
 
  public async Task GetMessages()
