@@ -33,5 +33,5 @@ public class ChatHub :Hub
   await Clients.Caller.SendCoreAsync("LoadMessages",new object[] {messages} );
  }
  public async Task Typing (string user){
-  await Clients.All.SendCoreAsync("Typing", new object[] { user });}
+  await Clients.Others.SendCoreAsync("Typing", new object[] { user });}
 }
