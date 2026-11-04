@@ -2,7 +2,48 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<h4>SignalR MVC Chat Demo</h4>
+<div>
+    <input id="userInput" type="text" placeholder="Your name" />
 </div>
+<br />
+<div>
+    <input id="messageInput" type="text" placeholder="Enter message" />
+    <button id="sendButton">Send</button>
+</div>
+<hr />
+<h3>Messages</h3>
+<ul id="messagesList"></ul>
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script>
+        "use strict";
+        const connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").withAutomaticReconnect().build();
+        connection.on("ReceiveMessage", function (user, message) {
+            const li = document.createElement("li");
+            li.textContent = `${user}: ${message}`;
+            document.getElementById("messagesList").appendChild(li);
+        });
+        connection.start()
+            .then(function () {
+                console.log("SignalR Connected Successfully");
+            })
+            .catch(function (error) {
+                console.error("SignalR Connection Error:", error);
+
+            });
+        document.getElementById("sendButton")
+            .addEventListener("click", function () {
+                const user = document.getElementById("userInput").value;
+                const message = document.getElementById("messageInput").value;
+                if (!user.trim() || !message.trim()) {
+                    return;
+                }
+                connection.invoke("SendMessage", user, message)
+                    .catch(function (error) {
+                        console.error(error);
+                    });
+                document.getElementById("messageInput").value = "";
+            });
+    </script>
+}
