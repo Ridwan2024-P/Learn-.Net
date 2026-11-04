@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("3c3097c1-5b85-4ba2-afc0-49998959ad9f")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("SignalRMvcDemo")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+04742166fab61df35f7f8ca81f25ff2a414aa708")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fed0ef9074c79decbc5a3bc36e882fafcd6a6c9c")]
 [assembly: System.Reflection.AssemblyProductAttribute("SignalRMvcDemo")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SignalRMvcDemo")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
