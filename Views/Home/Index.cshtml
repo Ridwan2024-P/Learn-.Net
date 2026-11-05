@@ -1,84 +1,325 @@
-﻿@{
+﻿
+@{
     ViewData["Title"] = "Home Page";
 }
 
-<h4>SignalR MVC Chat Demo</h4>
-<div>
-    <input id="userInput" type="text" placeholder="Your name" />
+<style>
+    .chat-container {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+       
+    }
+    .chat-header {
+        background: #075e54;
+        color: white;
+        padding: 18px 22px;
+    }
+
+    .chat-header h4 {
+        margin: 0;
+    }
+
+    .chat-user {
+        padding: 15px;
+        background: #f7f7f7;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .chat-user input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+    }
+
+    .messages-area {
+        height: 430px;
+        overflow-y: auto;
+        padding: 20px;
+        background: #efeae2;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .message-row {
+        display: flex;
+        width: 100%;
+    }
+
+    .my-message {
+        justify-content: flex-end;
+    }
+
+    .other-message {
+        justify-content: flex-start;
+    }
+
+    .message-bubble {
+        max-width: 75%;
+        min-width: 100px;
+        padding: 9px 12px 6px;
+        border-radius: 10px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        overflow-wrap: anywhere;
+    }
+
+    .my-message .message-bubble {
+        background: #d9fdd3;
+        border-top-right-radius: 2px;
+    }
+
+    .other-message .message-bubble {
+        background: #fff;
+        border-top-left-radius: 2px;
+    }
+
+    .message-user {
+        font-size: 12px;
+        font-weight: 700;
+        color: #075e54;
+        margin-bottom: 4px;
+    }
+
+    .message-text {
+        font-size: 14px;
+        color: #222;
+        white-space: pre-wrap;
+    }
+
+    .message-time {
+        font-size: 10px;
+        color: #777;
+        text-align: right;
+        margin-top: 5px;
+    }
+
+    .chat-input-area {
+        display: flex;
+        gap: 10px;
+        padding: 15px;
+        background: #f7f7f7;
+    }
+
+    .chat-input-area input {
+        flex: 1;
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 25px;
+        outline: none;
+    }
+
+    .chat-input-area button {
+        background: #075e54;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 0 25px;
+        cursor: pointer;
+    }
+
+    .chat-input-area button:hover {
+        background: #064b43;
+    }
+
+    .chat-input-area button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .empty-message
+    {
+        text-align: center;
+        color: #777;
+        margin: auto;
+        font-size: 14px;
+    }
+    .typing-status {
+        font-size: 12px;
+        color: #075e54;
+        padding: 5px 20px;
+        background: #efeae2;
+        min-height: 28px;
+    }
+</style>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <h4>SignalR Chat Application</h4>
+        <small>Online Chat</small>
+    </div>
+    <div class="chat-user">
+        <input id="userInput" type="text"  placeholder="Enter your name" />
+    </div>
+    <div id="messagesList" class="messages-area">
+        <div class="empty-message">No messages yet</div>
+    </div>
+    <div id="typingsStatus" class="typing-status"></div>
+    <div class="chat-input-area">
+        <input id="messageInput" type="text" placeholder="Type a message..." />
+        <button id="sendButton" disabled>Send</button>
+    </div>
 </div>
-<br />
-<div>
-    <input id="messageInput" type="text" placeholder="Enter message" />
-    <button id="sendButton">Send</button>
-</div>
-<hr />
-<h3>Messages</h3>
-<ul id="messagesList"></ul>
-<p id="typingsStatus"></p>
+
 @section Scripts {
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+
     <script>
         "use strict";
-        const connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").withAutomaticReconnect().build();
-        connection.on("ReceiveMessage", function (user, message,sentAt) {
-           addMessage(user, message,sentAt);
-        })
-        connection.on("LoadMessages", function (messages) {
-            document.getElementById("messagesList").innerHTML = "";
-            messages.forEach(function (msg) {
-                addMessage(msg.user, msg.message,msg.sentAt);
-            });
-        });
-        function addMessage(user, message ,sentAt) {
-            const li = document.createElement("li");
-            const data = new Date(sentAt);
 
-            const formattedTime = data.toLocaleString("en-GB", {
+        const userInput = document.getElementById("userInput");
+        const messageInput = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const messagesList = document.getElementById("messagesList");
+        const typingsStatus = document.getElementById("typingsStatus");
+
+        let allMessages = [];
+        let typingTimer;
+        userInput.value = localStorage.getItem("chatUser") || "";
+        userInput.addEventListener("input", function () {
+            localStorage.setItem("chatUser", userInput.value.trim());
+            renderMessages();
+        });
+        const connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").withAutomaticReconnect().build();
+        function formatTime(sentAt) {
+            const date = new Date(sentAt);
+            return date.toLocaleTimeString("en-GB", {
                 timeZone: "Asia/Dhaka",
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
                 hour: "2-digit",
                 minute: "2-digit",
-                second: "2-digit",
                 hour12: true
             });
-            li.textContent = `${user}: ${message} (${formattedTime})`;
-            document.getElementById("messagesList").appendChild(li);
         }
+        function addMessage(user, message, sentAt) {
+            allMessages.push({
+                user: user,
+                message: message,
+                sentAt: sentAt
+            });
+
+            renderMessages();
+        }
+        
+        function renderMessages() {
+            messagesList.innerHTML = "";
+            if (allMessages.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "empty-message";
+                empty.textContent = "No messages yet";
+                messagesList.appendChild(empty);
+                return;
+            }
+            const currentUser = userInput.value.trim().toLowerCase();
+            allMessages.forEach(function (msg) {
+                const isMine =
+                    currentUser !== "" &&
+                    msg.user.toLowerCase() === currentUser;
+                const row = document.createElement("div");
+                row.className = "message-row " +
+                    (isMine ? "my-message" : "other-message");
+                const bubble = document.createElement("div");
+                bubble.className = "message-bubble";
+                const username = document.createElement("div");
+                username.className = "message-user";
+                username.textContent = isMine ? "You" : msg.user;
+                
+                const text = document.createElement("div");
+                text.className = "message-text";
+                text.textContent = msg.message;
+                const time = document.createElement("div");
+                time.className = "message-time";
+                time.textContent = formatTime(msg.sentAt);
+                bubble.appendChild(username);
+                bubble.appendChild(text);
+                bubble.appendChild(time)
+                row.appendChild(bubble);
+                messagesList.appendChild(row);
+            });
+
+            messagesList.scrollTop = messagesList.scrollHeight;
+        }
+        connection.on("ReceiveMessage", function (user, message, sentAt) {
+            addMessage(user, message, sentAt);
+            typingsStatus.textContent = "";
+        });
+
+        
+        connection.on("LoadMessages", function (messages) {
+            allMessages = messages.map(function (msg) {
+                return {
+                    user: msg.user ?? msg.User,
+                    message: msg.message ?? msg.Message,
+                    sentAt: msg.sentAt ?? msg.SentAt
+                };
+            });
+            renderMessages();
+        });
+      
+        connection.on("Typing", function (user) {
+            const currentUser = userInput.value.trim().toLowerCase();
+           
+            if (user.toLowerCase() === currentUser) {
+                return;
+            }
+            typingsStatus.textContent = user + " is typing...";
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(function () {
+                typingsStatus.textContent = "";
+            }, 2000);
+        });
+
+       
         connection.start()
             .then(function () {
-                console.log("SignalR Connected Successfully")
+                console.log("SignalR Connected Successfully");
+                sendButton.disabled = false;
                 return connection.invoke("GetMessages");
             })
             .catch(function (error) {
                 console.error("SignalR Connection Error:", error);
-
             });
-        connection.on("Typing", function (user) {
-            document.getElementById("typingsStatus").textContent = user + " is typing...";
-        })
-        document.getElementById("messageInput")
-            .addEventListener("input", function () {
-
-                const user = document.getElementById("userInput").value;
-
-                if (user.trim()) {
-                    connection.invoke("Typing", user);
-                }
-            });
-        document.getElementById("sendButton")
-            .addEventListener("click", function () {
-                const user = document.getElementById("userInput").value;
-                const message = document.getElementById("messageInput").value;
-                if (!user.trim() || !message.trim()) {
-                    return;
-                }
-                connection.invoke("SendMessage", user, message)
+        messageInput.addEventListener("input", function () {
+            const user = userInput.value.trim();
+            if (user && connection.state === signalR.HubConnectionState.Connected) {
+                connection.invoke("Typing", user)
                     .catch(function (error) {
-                        console.error(error);
+                        console.error("Typing Error:", error);
                     });
-                document.getElementById("messageInput").value = "";
-            });
+            }
+        });
+        function sendMessage() {
+            const user = userInput.value.trim();
+            const message = messageInput.value.trim();
+            if (!user || !message) {
+                alert("Please enter your name and message.");
+                return;
+            }
+            if (connection.state !== signalR.HubConnectionState.Connected) {
+                alert("SignalR is not connected.");
+                return;
+            }
+            connection.invoke("SendMessage", user, message)
+                .then(function () {
+                    messageInput.value = "";
+                    messageInput.focus();
+                    typingsStatus.textContent = "";
+                })
+                .catch(function (error) {
+                    console.error("Send Error:", error);
+                });
+        }
+
+        sendButton.addEventListener("click", sendMessage);
+        messageInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
     </script>
 }
