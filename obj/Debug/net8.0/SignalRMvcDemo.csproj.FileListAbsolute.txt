@@ -109,3 +109,8 @@ D:\New folder\SignalRMvcDemo\SignalRMvcDemo\bin\Debug\net8.0\zh-Hans\Microsoft.C
 D:\New folder\SignalRMvcDemo\SignalRMvcDemo\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
 D:\New folder\SignalRMvcDemo\SignalRMvcDemo\obj\Debug\net8.0\SignalRMvcDemo.csproj.AssemblyReference.cache
 D:\New folder\SignalRMvcDemo\SignalRMvcDemo\obj\Debug\net8.0\SignalRM.588D7DC5.Up2Date
+D:\New folder\SignalRMvcDemo\SignalRMvcDemo\bin\Debug\net8.0\Microsoft.AspNetCore.Cryptography.Internal.dll
+D:\New folder\SignalRMvcDemo\SignalRMvcDemo\bin\Debug\net8.0\Microsoft.AspNetCore.Cryptography.KeyDerivation.dll
+D:\New folder\SignalRMvcDemo\SignalRMvcDemo\bin\Debug\net8.0\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
+D:\New folder\SignalRMvcDemo\SignalRMvcDemo\bin\Debug\net8.0\Microsoft.Extensions.Identity.Core.dll
+D:\New folder\SignalRMvcDemo\SignalRMvcDemo\bin\Debug\net8.0\Microsoft.Extensions.Identity.Stores.dll
