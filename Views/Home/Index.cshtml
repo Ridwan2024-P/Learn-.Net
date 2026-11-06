@@ -287,7 +287,29 @@ ViewData["Title"] = "Private Chat";
             color: #777;
             font-size: 13px;
         }
+        /* Delete Message Button */
+        .delete-message-btn {
+            display: block;
+            margin-left: auto;
+            margin-top: 5px;
+            padding: 3px 8px;
+            border: none;
+            border-radius: 5px;
+            background: transparent;
+            color: #d9534f;
+            font-size: 11px;
+            cursor: pointer;
+        }
 
+        .delete-message-btn:hover {
+            background: rgba(217, 83, 79, 0.1);
+        }
+
+        /* Deleted Message Style */
+        .deleted-message {
+            color: #777;
+            font-style: italic;
+        }
         @@media(max-width: 650px) {
             .chat-sidebar {
                 width: 120px;
@@ -535,7 +557,7 @@ ViewData["Title"] = "Private Chat";
     connection.on("UnreadCountUpdated", function (count) {
         console.log("Total unread messages:", count);
     });
-
+    
 
 
 
@@ -726,7 +748,16 @@ ViewData["Title"] = "Private Chat";
 
             text.className = "message-text";
 
-            text.textContent = msg.message;
+            if (msg.isDeleted) {
+
+                text.textContent = "This message was deleted";
+                text.classList.add("deleted-message");
+
+            } else {
+
+                text.textContent = msg.message;
+
+            }
 
             const time = document.createElement("div");
 
@@ -736,6 +767,20 @@ ViewData["Title"] = "Private Chat";
 
             bubble.appendChild(username);
             bubble.appendChild(text);
+            if (isMine && !msg.isDeleted) {
+
+                const deleteButton = document.createElement("button");
+
+                deleteButton.type = "button";
+                deleteButton.className = "delete-message-btn";
+                deleteButton.textContent = "Delete";
+
+                deleteButton.addEventListener("click", function () {
+                    deleteMessage(msg.id);
+                });
+
+                bubble.appendChild(deleteButton);
+            }
             bubble.appendChild(time);
 
             row.appendChild(bubble);
@@ -767,7 +812,9 @@ ViewData["Title"] = "Private Chat";
 
                 message: msg.message ?? msg.Message,
 
-                sentAt: msg.sentAt ?? msg.SentAt
+                sentAt: msg.sentAt ?? msg.SentAt,
+
+                isDeleted: msg.isDeleted ?? msg.IsDeleted ?? false
 
             };
 
@@ -795,7 +842,8 @@ ViewData["Title"] = "Private Chat";
                 senderId: senderId,
                 receiverId: receiverId,
                 message: msg.message ?? msg.Message,
-                sentAt: msg.sentAt ?? msg.SentAt
+                sentAt: msg.sentAt ?? msg.SentAt,
+                isDeleted: msg.isDeleted ?? msg.IsDeleted ?? false
             });
 
             renderMessages();
@@ -812,7 +860,17 @@ ViewData["Title"] = "Private Chat";
         }
         loadConversations();
     });
+    connection.on("MessageDeleted", function (messageId) {
 
+        const message = allMessages.find(function (msg) {
+            return String(msg.id) === String(messageId);
+        });
+        if (!message) return;
+        message.isDeleted = true;
+        renderMessages();
+        loadConversations();
+
+    });
 
 
 
@@ -855,7 +913,24 @@ ViewData["Title"] = "Private Chat";
 
     });
 
-    
+    async function deleteMessage(messageId) {
+        const confirmDelete = confirm(
+            "Are you sure you want to delete this message?"
+        );
+        if (!confirmDelete) return;
+        if (connection.state !== signalR.HubConnectionState.Connected) {
+            alert("SignalR is not connected.");
+            return;
+        }
+        try {
+            await connection.invoke("DeleteMessage", messageId);
+        }
+        catch (error) {
+            console.error("Delete Message Error:", error);
+            alrt("Unable to delete message.");
+
+        }
+    }
 
     async function sendMessage() {
 

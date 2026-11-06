@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using SignalRMvcDemo.Data;
+using SignalRMvcDemo.Migrations;
 using SignalRMvcDemo.Models;
 
 namespace SignalRMvcDemo.Hubs;
@@ -169,7 +170,7 @@ public class ChatHub : Hub
         var unreadCount = await _context.ChatMessages
             .CountAsync(m =>
                 m.ReceiverId == userId &&
-                !m.IsRead);
+                !m.IsRead && m.IsDeleted);
 
         await Clients.User(userId).SendAsync(
             "UnreadCountUpdated",
@@ -223,7 +224,7 @@ public class ChatHub : Hub
                 userId = c.UserId,
                 fullName = users[c.UserId].FullName,
                 email = users[c.UserId].Email,
-                lastMessage = c.LastMessage.Message,
+                lastMessage = c.LastMessage.IsDeleted ? "This message was deleted" : c.LastMessage.Message,
                 lastMessageAt = c.LastMessage.SentAt,
                 unreadCount = c.UnreadCount
             })
@@ -235,6 +236,43 @@ public class ChatHub : Hub
         );
     }
 
+    public async Task DeleteMessage(int messageId)
+    {
+        var currentUserId = Context.UserIdentifier;
+
+        if (string.IsNullOrEmpty(currentUserId))
+            throw new HubException("User is not authenticated.");
+
+        var chatMessage = await _context.ChatMessages
+            .FirstOrDefaultAsync(m => m.Id == messageId);
+
+        if (chatMessage == null)
+            throw new HubException("Message not found.");
+
+      
+        if (chatMessage.SenderId != currentUserId)
+            throw new HubException("You cannot delete this message.");
+
+        if (chatMessage.IsDeleted)
+            return;
+
+       
+        chatMessage.IsDeleted = true;
+
+        await _context.SaveChangesAsync();
+        
+        await Clients.User(currentUserId)
+            .SendAsync("MessageDeleted", messageId);
+        
+        await Clients.User(chatMessage.ReceiverId)
+            .SendAsync("MessageDeleted", messageId);
+        
+        await Clients.User(currentUserId)
+            .SendAsync("ConversationsUpdated");
+
+        await Clients.User(chatMessage.ReceiverId)
+            .SendAsync("ConversationsUpdated");
+    }
     
     public async Task Typing(string receiverId)
     {
