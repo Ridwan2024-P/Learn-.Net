@@ -1,325 +1,979 @@
-﻿
-@{
-    ViewData["Title"] = "Home Page";
+﻿@{
+ViewData["Title"] = "Private Chat";
 }
 
-<style>
-    .chat-container {
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        overflow: hidden;
-        background: #fff;
-       
-    }
-    .chat-header {
-        background: #075e54;
-        color: white;
-        padding: 18px 22px;
-    }
+<div id="chatApp"
+     data-current-user-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value">
 
-    .chat-header h4 {
-        margin: 0;
-    }
+    <style>
+        .chat-container {
+            display: flex;
+            height: 70vh;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .chat-sidebar {
+            width: 320px;
+            min-width: 280px;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+        }
 
-    .chat-user {
-        padding: 15px;
-        background: #f7f7f7;
-        border-bottom: 1px solid #ddd;
-    }
+        .sidebar-header {
+            background: #075e54;
+            color: white;
+            padding: 18px;
+        }
 
-    .chat-user input {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-    }
+        .sidebar-header h5 {
+            margin: 0;
+        }
 
-    .messages-area {
-        height: 430px;
-        overflow-y: auto;
-        padding: 20px;
-        background: #efeae2;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
+        .search-area {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
 
-    .message-row {
-        display: flex;
-        width: 100%;
-    }
+        .search-area input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            outline: none;
+        }
 
-    .my-message {
-        justify-content: flex-end;
-    }
+        .search-results {
+            flex: 0 0 auto;
+            max-height: 180px;
+            overflow-y: auto;
+            display: none;
+            border-top: 1px solid #ddd;
+        }
 
-    .other-message {
-        justify-content: flex-start;
-    }
+        .conversation-heading {
+            padding: 10px 14px;
+            color: #075e54;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            border-bottom: 1px solid #eee;
+        }
 
-    .message-bubble {
-        max-width: 75%;
-        min-width: 100px;
-        padding: 9px 12px 6px;
-        border-radius: 10px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-        overflow-wrap: anywhere;
-    }
+        .conversation-list {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+        }
 
-    .my-message .message-bubble {
-        background: #d9fdd3;
-        border-top-right-radius: 2px;
-    }
+        .conversation-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 13px 14px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
 
-    .other-message .message-bubble {
-        background: #fff;
-        border-top-left-radius: 2px;
-    }
+        .conversation-item:hover {
+            background: #f3f3f3;
+        }
 
-    .message-user {
-        font-size: 12px;
-        font-weight: 700;
-        color: #075e54;
-        margin-bottom: 4px;
-    }
+        .conversation-item.active {
+            background: #e8f5e9;
+        }
 
-    .message-text {
-        font-size: 14px;
-        color: #222;
-        white-space: pre-wrap;
-    }
+        .conversation-info {
+            min-width: 0;
+            flex: 1;
+        }
 
-    .message-time {
-        font-size: 10px;
-        color: #777;
-        text-align: right;
-        margin-top: 5px;
-    }
+        .conversation-info strong {
+            display: block;
+            color: #075e54;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 
-    .chat-input-area {
-        display: flex;
-        gap: 10px;
-        padding: 15px;
-        background: #f7f7f7;
-    }
+        .conversation-info small {
+            display: block;
+            color: #777;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-top: 4px;
+        }
 
-    .chat-input-area input {
-        flex: 1;
-        min-width: 0;
-        padding: 12px;
-        border: 1px solid #ccc;
-        border-radius: 25px;
-        outline: none;
-    }
+        .unread-badge {
+            flex: 0 0 auto;
+            min-width: 21px;
+            height: 21px;
+            padding: 0 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            background: #25d366;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+        }
 
-    .chat-input-area button {
-        background: #075e54;
-        color: white;
-        border: none;
-        border-radius: 25px;
-        padding: 0 25px;
-        cursor: pointer;
-    }
+        .search-result {
+            padding: 14px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
 
-    .chat-input-area button:hover {
-        background: #064b43;
-    }
+        .search-result:hover {
+            background: #f3f3f3;
+        }
 
-    .chat-input-area button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+        .search-result.active {
+            background: #e8f5e9;
+        }
 
-    .empty-message
-    {
-        text-align: center;
-        color: #777;
-        margin: auto;
-        font-size: 14px;
-    }
-    .typing-status {
-        font-size: 12px;
-        color: #075e54;
-        padding: 5px 20px;
-        background: #efeae2;
-        min-height: 28px;
-    }
-</style>
+        .search-result strong {
+            display: block;
+            color: #075e54;
+        }
 
-<div class="chat-container">
-    <div class="chat-header">
-        <h4>SignalR Chat Application</h4>
-        <small>Online Chat</small>
+        .search-result small {
+            color: #777;
+        }
+        
+        .chat-main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: #075e54;
+            color: white;
+            padding: 18px 22px;
+        }
+
+        .chat-header h5 {
+            margin: 0;
+        }
+
+        .chat-header small {
+            color: #d9fdd3;
+        }
+
+        .messages-area {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 20px;
+            background: #efeae2;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message-row {
+            display: flex;
+            width: 100%;
+        }
+
+        .my-message {
+            justify-content: flex-end;
+        }
+
+        .other-message {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 75%;
+            min-width: 100px;
+            padding: 9px 12px 6px;
+            border-radius: 10px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            overflow-wrap: anywhere;
+        }
+
+        .my-message .message-bubble {
+            background: #d9fdd3;
+            border-top-right-radius: 2px;
+        }
+
+        .other-message .message-bubble {
+            background: white;
+            border-top-left-radius: 2px;
+        }
+
+        .message-user {
+            font-size: 12px;
+            font-weight: 700;
+            color: #075e54;
+            margin-bottom: 4px;
+        }
+
+        .message-text {
+            font-size: 14px;
+            color: #222;
+            white-space: pre-wrap;
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: #777;
+            text-align: right;
+            margin-top: 5px;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background: #f7f7f7;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 25px;
+            outline: none;
+        }
+
+        .chat-input-area button {
+            background: #075e54;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 0 25px;
+            cursor: pointer;
+        }
+
+        .chat-input-area button:hover {
+            background: #064b43;
+        }
+
+        .chat-input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .typing-status {
+            font-size: 12px;
+            color: #075e54;
+            padding: 5px 20px;
+            background: #efeae2;
+            min-height: 28px;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #777;
+            margin: auto;
+            font-size: 14px;
+        }
+
+        .search-message {
+            padding: 20px;
+            text-align: center;
+            color: #777;
+            font-size: 13px;
+        }
+
+        @@media(max-width: 650px) {
+            .chat-sidebar {
+                width: 120px;
+                min-width: 120px;
+            }
+
+            .sidebar-header {
+                padding: 12px 8px;
+            }
+
+            .sidebar-header h5 {
+                font-size: 13px;
+            }
+
+            .search-area {
+                padding: 8px;
+            }
+
+            .search-area input {
+                font-size: 11px;
+                padding: 8px;
+            }
+
+            .search-result,
+            .conversation-item {
+                padding: 10px 6px;
+                font-size: 12px;
+            }
+
+            .conversation-heading {
+                padding: 8px 6px;
+                font-size: 10px;
+            }
+
+            .conversation-info small,
+            .search-result small {
+                font-size: 10px;
+                overflow-wrap: anywhere;
+            }
+
+            .chat-header {
+                padding: 14px;
+            }
+
+            .messages-area {
+                padding: 10px;
+            }
+
+            .message-bubble {
+                max-width: 90%;
+            }
+
+            .chat-input-area {
+                padding: 8px;
+            }
+
+            .chat-input-area button {
+                padding: 0 12px;
+            }
+        }
+    </style>
+
+    <div class="chat-container">
+        
+        <div class="chat-sidebar">
+            <div class="sidebar-header">
+                <h5>Contacts</h5>
+                <small>Private Messaging</small>
+            </div>
+
+            <div class="search-area">
+                <input id="searchInput"
+                       type="text"
+                       placeholder="Search name or email..." />
+            </div>
+
+            <div class="conversation-heading">Recent Chats</div>
+
+            <div id="conversationList" class="conversation-list">
+                <div class="search-message">Loading conversations...</div>
+            </div>
+
+            <div id="searchResults" class="search-results">
+            </div>
+
+        </div>
+        <div class="chat-main">
+
+            <div class="chat-header">
+                <h5 id="chatUserName">SignalR Private Chat</h5>
+                <small id="chatUserEmail">Select a user to start chatting</small>
+            </div>
+
+            <div id="messagesList" class="messages-area">
+                <div class="empty-message">
+                    Select a user from the left side.
+                </div>
+            </div>
+
+            <div id="typingsStatus" class="typing-status"></div>
+
+            <div class="chat-input-area">
+
+                <input id="messageInput"
+                       type="text"
+                       placeholder="Select a user first..."
+                       disabled />
+
+                <button id="sendButton" disabled>
+                    Send
+                </button>
+
+            </div>
+
+        </div>
+
     </div>
-    <div class="chat-user">
-        <input id="userInput" type="text"  placeholder="Enter your name" />
-    </div>
-    <div id="messagesList" class="messages-area">
-        <div class="empty-message">No messages yet</div>
-    </div>
-    <div id="typingsStatus" class="typing-status"></div>
-    <div class="chat-input-area">
-        <input id="messageInput" type="text" placeholder="Type a message..." />
-        <button id="sendButton" disabled>Send</button>
-    </div>
+
 </div>
 
 @section Scripts {
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 
-    <script>
-        "use strict";
+<script>
+    "use strict";
+    
 
-        const userInput = document.getElementById("userInput");
-        const messageInput = document.getElementById("messageInput");
-        const sendButton = document.getElementById("sendButton");
-        const messagesList = document.getElementById("messagesList");
-        const typingsStatus = document.getElementById("typingsStatus");
+    const chatApp = document.getElementById("chatApp");
+    const currentUserId = chatApp.dataset.currentUserId;
+    const searchInput = document.getElementById("searchInput");
+    const searchResults = document.getElementById("searchResults");
+    const conversationList = document.getElementById("conversationList");
+    const chatUserName = document.getElementById("chatUserName");
+    const chatUserEmail = document.getElementById("chatUserEmail");
+    const messagesList = document.getElementById("messagesList");
+    const messageInput = document.getElementById("messageInput");
+    const sendButton = document.getElementById("sendButton");
+    const typingsStatus = document.getElementById("typingsStatus");
+    
 
-        let allMessages = [];
-        let typingTimer;
-        userInput.value = localStorage.getItem("chatUser") || "";
-        userInput.addEventListener("input", function () {
-            localStorage.setItem("chatUser", userInput.value.trim());
-            renderMessages();
+    let selectedUser = null;
+    let allMessages = [];
+    let searchTimer;
+    let typingTimer;
+    
+
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/chathub")
+        .withAutomaticReconnect()
+        .build();
+
+
+
+
+    function formatTime(sentAt) {
+
+        const date = new Date(sentAt);
+
+        return date.toLocaleTimeString("en-GB", {
+            timeZone: "Asia/Dhaka",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true
         });
-        const connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").withAutomaticReconnect().build();
-        function formatTime(sentAt) {
-            const date = new Date(sentAt);
-            return date.toLocaleTimeString("en-GB", {
-                timeZone: "Asia/Dhaka",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true
-            });
+    }
+
+
+
+
+    async function loadConversations() {
+        if (connection.state !== signalR.HubConnectionState.Connected) return;
+
+        try {
+            await connection.invoke("GetConversations");
         }
-        function addMessage(user, message, sentAt) {
-            allMessages.push({
-                user: user,
-                message: message,
-                sentAt: sentAt
+        catch (error) {
+            console.error("Load Conversations Error:", error);
+            conversationList.innerHTML =
+                '<div class="search-message">Unable to load conversations.</div>';
+        }
+    }
+
+    function renderConversations(conversations) {
+        conversationList.innerHTML = "";
+
+        if (!conversations || conversations.length === 0) {
+            conversationList.innerHTML =
+                '<div class="search-message">No conversations yet. Search for a user to start chatting.</div>';
+            return;
+        }
+
+        conversations.forEach(function (conversation) {
+            const userId = conversation.userId ?? conversation.UserId;
+            const fullName = conversation.fullName ?? conversation.FullName ?? "User";
+            const email = conversation.email ?? conversation.Email ?? "";
+            const lastMessage = conversation.lastMessage ?? conversation.LastMessage ?? "Start a conversation";
+            const unreadCount = Number(conversation.unreadCount ?? conversation.UnreadCount ?? 0);
+
+            if (!userId || userId === currentUserId) return;
+
+            const item = document.createElement("div");
+            item.className = "conversation-item";
+
+            if (selectedUser && selectedUser.id === userId) {
+                item.classList.add("active");
+            }
+
+            const info = document.createElement("div");
+            info.className = "conversation-info";
+
+            const name = document.createElement("strong");
+            name.textContent = fullName;
+
+            const preview = document.createElement("small");
+            preview.textContent = lastMessage;
+
+            info.appendChild(name);
+            info.appendChild(preview);
+            item.appendChild(info);
+
+            if (unreadCount > 0) {
+                const badge = document.createElement("span");
+                badge.className = "unread-badge";
+                badge.textContent = unreadCount > 99 ? "99+" : unreadCount;
+                item.appendChild(badge);
+            }
+
+            item.addEventListener("click", function () {
+                selectUser({ id: userId, fullName: fullName, email: email });
             });
 
-            renderMessages();
+            conversationList.appendChild(item);
+        });
+    }
+
+    connection.on("LoadConversations", function (conversations) {
+        renderConversations(conversations);
+    });
+
+    connection.on("ConversationsUpdated", function () {
+        loadConversations();
+    });
+
+    connection.on("UnreadCountUpdated", function (count) {
+        console.log("Total unread messages:", count);
+    });
+
+
+
+
+    async function searchUsers() {
+
+        const query = searchInput.value.trim();
+
+        if (query.length < 2) {
+            searchResults.innerHTML = "";
+            searchResults.style.display = "none";
+            return;
         }
-        
-        function renderMessages() {
-            messagesList.innerHTML = "";
-            if (allMessages.length === 0) {
-                const empty = document.createElement("div");
-                empty.className = "empty-message";
-                empty.textContent = "No messages yet";
-                messagesList.appendChild(empty);
+
+        searchResults.style.display = "block";
+
+        try {
+
+            const response = await fetch(
+                `/Home/SearchUsers?searchTerm=${encodeURIComponent(query)}`
+            );
+
+            if (!response.ok) {
+                throw new Error("User search failed.");
+            }
+
+            const users = await response.json();
+
+            searchResults.innerHTML = "";
+
+            if (!users || users.length === 0) {
+
+                searchResults.innerHTML =
+                    '<div class="search-message">No users found.</div>';
+
                 return;
             }
-            const currentUser = userInput.value.trim().toLowerCase();
-            allMessages.forEach(function (msg) {
-                const isMine =
-                    currentUser !== "" &&
-                    msg.user.toLowerCase() === currentUser;
-                const row = document.createElement("div");
-                row.className = "message-row " +
-                    (isMine ? "my-message" : "other-message");
-                const bubble = document.createElement("div");
-                bubble.className = "message-bubble";
-                const username = document.createElement("div");
-                username.className = "message-user";
-                username.textContent = isMine ? "You" : msg.user;
-                
-                const text = document.createElement("div");
-                text.className = "message-text";
-                text.textContent = msg.message;
-                const time = document.createElement("div");
-                time.className = "message-time";
-                time.textContent = formatTime(msg.sentAt);
-                bubble.appendChild(username);
-                bubble.appendChild(text);
-                bubble.appendChild(time)
-                row.appendChild(bubble);
-                messagesList.appendChild(row);
-            });
 
-            messagesList.scrollTop = messagesList.scrollHeight;
-        }
-        connection.on("ReceiveMessage", function (user, message, sentAt) {
-            addMessage(user, message, sentAt);
-            typingsStatus.textContent = "";
-        });
+            users.forEach(function (user) {
 
-        
-        connection.on("LoadMessages", function (messages) {
-            allMessages = messages.map(function (msg) {
-                return {
-                    user: msg.user ?? msg.User,
-                    message: msg.message ?? msg.Message,
-                    sentAt: msg.sentAt ?? msg.SentAt
-                };
-            });
-            renderMessages();
-        });
-      
-        connection.on("Typing", function (user) {
-            const currentUser = userInput.value.trim().toLowerCase();
-           
-            if (user.toLowerCase() === currentUser) {
-                return;
-            }
-            typingsStatus.textContent = user + " is typing...";
-            clearTimeout(typingTimer);
-            typingTimer = setTimeout(function () {
-                typingsStatus.textContent = "";
-            }, 2000);
-        });
+                const userId = user.id ?? user.Id ?? user.userId;
 
-       
-        connection.start()
-            .then(function () {
-                console.log("SignalR Connected Successfully");
-                sendButton.disabled = false;
-                return connection.invoke("GetMessages");
-            })
-            .catch(function (error) {
-                console.error("SignalR Connection Error:", error);
-            });
-        messageInput.addEventListener("input", function () {
-            const user = userInput.value.trim();
-            if (user && connection.state === signalR.HubConnectionState.Connected) {
-                connection.invoke("Typing", user)
-                    .catch(function (error) {
-                        console.error("Typing Error:", error);
+                const fullName =
+                    user.fullName ?? user.FullName ?? user.userName ?? "User";
+
+                const email = user.email ?? user.Email ?? "";
+
+                if (!userId || userId === currentUserId) {
+                    return;
+                }
+
+                const item = document.createElement("div");
+
+                item.className = "search-result";
+
+                if (selectedUser && selectedUser.id === userId) {
+                    item.classList.add("active");
+                }
+
+                const name = document.createElement("strong");
+                name.textContent = fullName;
+
+                const emailElement = document.createElement("small");
+                emailElement.textContent = email;
+
+                item.appendChild(name);
+                item.appendChild(emailElement);
+
+                item.addEventListener("click", function () {
+
+                    selectUser({
+                        id: userId,
+                        fullName: fullName,
+                        email: email
                     });
-            }
-        });
-        function sendMessage() {
-            const user = userInput.value.trim();
-            const message = messageInput.value.trim();
-            if (!user || !message) {
-                alert("Please enter your name and message.");
-                return;
-            }
-            if (connection.state !== signalR.HubConnectionState.Connected) {
-                alert("SignalR is not connected.");
-                return;
-            }
-            connection.invoke("SendMessage", user, message)
-                .then(function () {
-                    messageInput.value = "";
-                    messageInput.focus();
-                    typingsStatus.textContent = "";
-                })
-                .catch(function (error) {
-                    console.error("Send Error:", error);
+
                 });
+
+                searchResults.appendChild(item);
+
+            });
+
+        }
+        catch (error) {
+
+            console.error("Search Error:", error);
+
+            searchResults.innerHTML =
+                '<div class="search-message">Unable to search users.</div>';
+        }
+    }
+    
+
+    searchInput.addEventListener("input", function () {
+
+        clearTimeout(searchTimer);
+
+        searchTimer = setTimeout(searchUsers, 400);
+
+    });
+
+
+
+
+    async function selectUser(user) {
+
+        if (connection.state !== signalR.HubConnectionState.Connected) {
+            alert("SignalR is not connected.");
+            return;
         }
 
-        sendButton.addEventListener("click", sendMessage);
-        messageInput.addEventListener("keydown", function (event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                sendMessage();
-            }
+        selectedUser = user;
+        searchResults.style.display = "none";
+
+        allMessages = [];
+
+        chatUserName.textContent = user.fullName;
+        chatUserEmail.textContent = user.email;
+
+        messageInput.disabled = false;
+        sendButton.disabled = false;
+
+        messageInput.placeholder = "Type a message...";
+
+        typingsStatus.textContent = "";
+
+        renderMessages();
+        loadConversations();
+
+        try {
+
+            await connection.invoke(
+                "GetPrivateMessages",
+                user.id
+            );
+
+        }
+        catch (error) {
+
+            console.error("Load Chat Error:", error);
+
+            alert("Unable to load chat history.");
+
+        }
+    }
+
+
+
+
+    function renderMessages() {
+
+        messagesList.innerHTML = "";
+
+        if (allMessages.length === 0) {
+
+            const empty = document.createElement("div");
+
+            empty.className = "empty-message";
+
+            empty.textContent = "No messages yet.";
+
+            messagesList.appendChild(empty);
+
+            return;
+        }
+
+        allMessages.forEach(function (msg) {
+
+            const isMine = msg.senderId === currentUserId;
+
+            const row = document.createElement("div");
+
+            row.className = "message-row " +
+                (isMine ? "my-message" : "other-message");
+
+            const bubble = document.createElement("div");
+
+            bubble.className = "message-bubble";
+
+            const username = document.createElement("div");
+
+            username.className = "message-user";
+
+            username.textContent = isMine
+                ? "You"
+                : selectedUser.fullName;
+
+            const text = document.createElement("div");
+
+            text.className = "message-text";
+
+            text.textContent = msg.message;
+
+            const time = document.createElement("div");
+
+            time.className = "message-time";
+
+            time.textContent = formatTime(msg.sentAt);
+
+            bubble.appendChild(username);
+            bubble.appendChild(text);
+            bubble.appendChild(time);
+
+            row.appendChild(bubble);
+
+            messagesList.appendChild(row);
+
         });
 
-    </script>
+        messagesList.scrollTop = messagesList.scrollHeight;
+
+    }
+
+
+ 
+
+    connection.on("LoadPrivateMessages", function (messages) {
+
+        if (!selectedUser) return;
+
+        allMessages = messages.map(function (msg) {
+
+            return {
+
+                id: msg.id ?? msg.Id,
+
+                senderId: msg.senderId ?? msg.SenderId,
+
+                receiverId: msg.receiverId ?? msg.ReceiverId,
+
+                message: msg.message ?? msg.Message,
+
+                sentAt: msg.sentAt ?? msg.SentAt
+
+            };
+
+        });
+
+        renderMessages();
+
+    });
+
+
+    
+
+    connection.on("ReceivePrivateMessage", async function (msg) {
+
+        const senderId = msg.senderId ?? msg.SenderId;
+        const receiverId = msg.receiverId ?? msg.ReceiverId;
+
+        const isCurrentConversation = selectedUser &&
+            ((senderId === currentUserId && receiverId === selectedUser.id) ||
+                (senderId === selectedUser.id && receiverId === currentUserId));
+
+        if (isCurrentConversation) {
+            allMessages.push({
+                id: msg.id ?? msg.Id,
+                senderId: senderId,
+                receiverId: receiverId,
+                message: msg.message ?? msg.Message,
+                sentAt: msg.sentAt ?? msg.SentAt
+            });
+
+            renderMessages();
+            typingsStatus.textContent = "";
+            if (senderId !== currentUserId &&
+                connection.state === signalR.HubConnectionState.Connected) {
+                try {
+                    await connection.invoke("MarkMessagesAsRead", senderId);
+                }
+                catch (error) {
+                    console.error("Mark Messages As Read Error:", error);
+                }
+            }
+        }
+        loadConversations();
+    });
+
+
+
+
+    connection.on("UserTyping", function (senderId) {
+
+        if (!selectedUser) return;
+
+        if (senderId !== selectedUser.id) return;
+
+        typingsStatus.textContent =
+            selectedUser.fullName + " is typing...";
+
+        clearTimeout(typingTimer);
+
+        typingTimer = setTimeout(function () {
+
+            typingsStatus.textContent = "";
+
+        }, 2000);
+
+    });
+    
+
+    messageInput.addEventListener("input", function () {
+
+        if (!selectedUser) return;
+
+        if (connection.state !== signalR.HubConnectionState.Connected) {
+            return;
+        }
+
+        connection.invoke(
+            "Typing",
+            selectedUser.id
+        ).catch(function (error) {
+
+            console.error("Typing Error:", error);
+
+        });
+
+    });
+
+    
+
+    async function sendMessage() {
+
+        const message = messageInput.value.trim();
+
+        if (!selectedUser || !message) return;
+
+        if (connection.state !== signalR.HubConnectionState.Connected) {
+
+            alert("SignalR is not connected.");
+
+            return;
+        }
+
+        sendButton.disabled = true;
+
+        try {
+
+            await connection.invoke(
+                "SendPrivateMessage",
+                selectedUser.id,
+                message
+            );
+
+            messageInput.value = "";
+
+            messageInput.focus();
+
+            typingsStatus.textContent = "";
+
+        }
+        catch (error) {
+
+            console.error("Send Message Error:", error);
+
+            alert("Message could not be sent.");
+
+        }
+        finally {
+
+            sendButton.disabled = false;
+
+        }
+
+    }
+    
+
+    sendButton.addEventListener("click", sendMessage);
+    
+
+    messageInput.addEventListener("keydown", function (event) {
+
+        if (event.key === "Enter") {
+
+            event.preventDefault();
+
+            sendMessage();
+
+        }
+
+    });
+    
+
+    connection.start()
+
+        .then(async function () {
+
+            console.log("SignalR Connected Successfully");
+
+            await loadConversations();
+
+            try {
+                await connection.invoke("GetUnreadMessageCount");
+            }
+            catch (error) {
+                console.error("Unread Count Error:", error);
+            }
+
+        })
+
+        .catch(function (error) {
+
+            console.error("SignalR Connection Error:", error);
+
+        });
+
+    connection.onreconnected(async function () {
+
+        console.log("SignalR Reconnected");
+
+        await loadConversations();
+
+        try {
+            await connection.invoke("GetUnreadMessageCount");
+        }
+        catch (error) {
+            console.error("Unread Count After Reconnect Error:", error);
+        }
+
+        if (selectedUser) {
+
+            try {
+
+                await connection.invoke(
+                    "GetPrivateMessages",
+                    selectedUser.id
+                );
+
+            }
+            catch (error) {
+
+                console.error("Reconnect Error:", error);
+
+            }
+
+        }
+
+    });
+
+</script>
 }
