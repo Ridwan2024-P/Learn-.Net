@@ -727,6 +727,8 @@ ViewData["Title"] = "Private Chat";
 
             const isMine = msg.senderId === currentUserId;
 
+            const isDeletedForMe = isMine ? msg.isDeletedForSender : msg.isDeletedForReceiver;
+
             const row = document.createElement("div");
 
             row.className = "message-row " +
@@ -748,12 +750,16 @@ ViewData["Title"] = "Private Chat";
 
             text.className = "message-text";
 
-            if (msg.isDeleted) {
+            if (msg.isDeleted || isDeletedForMe) 
+            {
 
                 text.textContent = "This message was deleted";
                 text.classList.add("deleted-message");
 
-            } else {
+            } 
+            
+            
+            else {
 
                 text.textContent = msg.message;
 
@@ -767,20 +773,35 @@ ViewData["Title"] = "Private Chat";
 
             bubble.appendChild(username);
             bubble.appendChild(text);
-            if (isMine && !msg.isDeleted) {
+            if (!msg.isDeleted && !isDeletedForMe) {
 
-                const deleteButton = document.createElement("button");
+                const deleteForMeButton = document.createElement("button");
 
-                deleteButton.type = "button";
-                deleteButton.className = "delete-message-btn";
-                deleteButton.textContent = "Delete";
+                deleteForMeButton.type = "button";
+                deleteForMeButton.className = "delete-message-btn";
+                deleteForMeButton.textContent = "Delete for me";
 
-                deleteButton.addEventListener("click", function () {
-                    deleteMessage(msg.id);
+                deleteForMeButton.addEventListener("click", function () {
+                    deleteMessageForMe(msg.id);
                 });
 
-                bubble.appendChild(deleteButton);
-            }
+                bubble.appendChild(deleteForMeButton);
+                
+                if (isMine) {
+
+                    const deleteEveryoneButton = document.createElement("button");
+
+                    deleteEveryoneButton.type = "button";
+                    deleteEveryoneButton.className = "delete-message-btn";
+                    deleteEveryoneButton.textContent = "Delete for everyone";
+
+                    deleteEveryoneButton.addEventListener("click", function () {
+                        deleteMessage(msg.id);
+                    });
+
+                    bubble.appendChild(deleteEveryoneButton);
+                }
+}
             bubble.appendChild(time);
 
             row.appendChild(bubble);
@@ -814,7 +835,11 @@ ViewData["Title"] = "Private Chat";
 
                 sentAt: msg.sentAt ?? msg.SentAt,
 
-                isDeleted: msg.isDeleted ?? msg.IsDeleted ?? false
+                isDeleted: msg.isDeleted ?? msg.IsDeleted ?? false,
+
+                isDeletedForSender: msg.isDeletedForSender ?? msg.IsDeletedForSender ?? false,
+
+                isDeletedForReceiver: msg.isDeletedForReceiver ?? msg.IsDeletedForReceiver ?? false
 
             };
 
@@ -843,7 +868,11 @@ ViewData["Title"] = "Private Chat";
                 receiverId: receiverId,
                 message: msg.message ?? msg.Message,
                 sentAt: msg.sentAt ?? msg.SentAt,
-                isDeleted: msg.isDeleted ?? msg.IsDeleted ?? false
+                isDeleted: msg.isDeleted ?? msg.IsDeleted ?? false,
+
+                isDeletedForSender: msg.isDeletedForSender ?? msg.IsDeletedForSender ?? false,
+
+                isDeletedForReceiver: msg.isDeletedForReceiver ?? msg.IsDeletedForReceiver ?? false
             });
 
             renderMessages();
@@ -860,13 +889,22 @@ ViewData["Title"] = "Private Chat";
         }
         loadConversations();
     });
-    connection.on("MessageDeleted", function (messageId) {
-
+    connection.on("MessageDeletedForMe", function (messageId) {
         const message = allMessages.find(function (msg) {
             return String(msg.id) === String(messageId);
         });
+
         if (!message) return;
-        message.isDeleted = true;
+        if (message.senderId === currentUserId) {
+
+            message.isDeletedForSender = true;
+
+        } 
+        else {
+
+            message.isDeletedForReceiver = true;
+
+        }
         renderMessages();
         loadConversations();
 
@@ -927,10 +965,40 @@ ViewData["Title"] = "Private Chat";
         }
         catch (error) {
             console.error("Delete Message Error:", error);
-            alrt("Unable to delete message.");
+            alert("Unable to delete message.");
 
         }
     }
+
+    async function deleteMessageForMe(messageId) {
+
+        const confirmDelete = confirm(
+            "Delete this message for you?"
+        );
+
+        if (!confirmDelete) return;
+
+        if (connection.state !== signalR.HubConnectionState.Connected) {
+            alert("SignalR is not connected.");
+            return;
+        }
+
+        try {
+
+            await connection.invoke(
+                "DeleteMessageForMe",
+                messageId
+            );
+
+        }
+        catch (error) {
+
+            console.error("Delete For Me Error:", error);
+
+            alert("Unable to delete message.");
+
+        }
+}
 
     async function sendMessage() {
 

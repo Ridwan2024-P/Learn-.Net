@@ -233,6 +233,12 @@ namespace SignalRMvcDemo.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsDeletedForReceiver")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeletedForSender")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean");
 

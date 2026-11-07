@@ -273,6 +273,32 @@ public class ChatHub : Hub
         await Clients.User(chatMessage.ReceiverId)
             .SendAsync("ConversationsUpdated");
     }
+
+    public async Task DeleteMessageForMe(int messageId)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId))
+            return;
+        var message = await _context.ChatMessages.FirstOrDefaultAsync(m => m.Id == messageId);
+
+        if (message == null)
+            return;
+
+        if (message.SenderId != userId &&
+            message.ReceiverId != userId)
+            return;
+        if (message.SenderId == userId)
+        {
+            message.IsDeletedForSender = true;
+        }
+        else
+        { message.IsDeletedForReceiver = true;
+        }
+
+        await _context.SaveChangesAsync();
+        await Clients.Caller.SendAsync("MessageDeletedForMe", messageId);
+    }
+    
     
     public async Task Typing(string receiverId)
     {
