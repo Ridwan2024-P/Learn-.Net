@@ -792,6 +792,9 @@ ViewData["Title"] = "Private Chat";
 
             row.className = "message-row " +
                 (isMine ? "my-message" : "other-message");
+            if (isDeletedForMe) {
+                return;
+            }
 
             const bubble = document.createElement("div");
 
@@ -841,7 +844,7 @@ ViewData["Title"] = "Private Chat";
 
             bubble.appendChild(messageHeader);
             bubble.appendChild(text);
-            if (!msg.isDeleted && !isDeletedForMe) {
+            if (!isDeletedForMe) {
 
                 const actions = document.createElement("div");
                 actions.className = "message-actions";
@@ -873,7 +876,7 @@ ViewData["Title"] = "Private Chat";
 
                 dropdown.appendChild(deleteForMeButton);
                 
-                if (isMine) {
+                if (isMine  && !msg.isDeleted) {
 
                     const deleteEveryoneButton = document.createElement("button");
 
