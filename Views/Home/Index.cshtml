@@ -15,7 +15,7 @@ ViewData["Title"] = "Private Chat";
             background: #fff;
         }
         .chat-sidebar {
-            width: 320px;
+            width: 220px;
             min-width: 280px;
             border-right: 1px solid #ddd;
             display: flex;
@@ -309,6 +309,65 @@ ViewData["Title"] = "Private Chat";
         .deleted-message {
             color: #777;
             font-style: italic;
+        }
+        
+        .message-actions {
+            position: relative;
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+
+        .message-menu-btn {
+            border: none;
+            background: transparent;
+            color: #777;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 50%;
+            line-height: 1;
+        }
+
+        .message-menu-btn:hover {
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .message-dropdown {
+            display: none;
+            position: absolute;
+            top: -52px;
+          right: -22px;
+            min-width: 175px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.18);
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .message-dropdown.show {
+            display: block;
+        }
+
+        .message-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 11px 14px;
+            border: none;
+            background: white;
+            text-align: left;
+            font-size: 13px;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .message-dropdown button:hover {
+            background: #f2f2f2;
+        }
+
+        .message-dropdown .delete-everyone {
+            color: #d9534f;
         }
         @@media(max-width: 650px) {
             .chat-sidebar {
@@ -766,42 +825,99 @@ ViewData["Title"] = "Private Chat";
             }
 
             const time = document.createElement("div");
-
+            
             time.className = "message-time";
-
+            
+            
             time.textContent = formatTime(msg.sentAt);
+            const messageHeader = document.createElement("div");
 
-            bubble.appendChild(username);
+            messageHeader.style.display = "flex";
+            messageHeader.style.alignItems = "center";
+            messageHeader.style.justifyContent = "space-between";
+            messageHeader.style.gap = "12px";
+            username.style.marginBottom = "0";
+            messageHeader.appendChild(username);
+
+            bubble.appendChild(messageHeader);
             bubble.appendChild(text);
             if (!msg.isDeleted && !isDeletedForMe) {
 
+                const actions = document.createElement("div");
+                actions.className = "message-actions";
+                
+                const menuButton = document.createElement("button");
+
+                menuButton.type = "button";
+                menuButton.className = "message-menu-btn";
+                menuButton.innerHTML = "&#8942;";
+                menuButton.title = "Message options";
+                
+                const dropdown = document.createElement("div");
+                dropdown.className = "message-dropdown";
+                
                 const deleteForMeButton = document.createElement("button");
 
                 deleteForMeButton.type = "button";
-                deleteForMeButton.className = "delete-message-btn";
                 deleteForMeButton.textContent = "Delete for me";
 
-                deleteForMeButton.addEventListener("click", function () {
+                deleteForMeButton.addEventListener("click", function (event) {
+
+                    event.stopPropagation();
+
+                    dropdown.classList.remove("show");
+
                     deleteMessageForMe(msg.id);
+
                 });
 
-                bubble.appendChild(deleteForMeButton);
+                dropdown.appendChild(deleteForMeButton);
                 
                 if (isMine) {
 
                     const deleteEveryoneButton = document.createElement("button");
 
                     deleteEveryoneButton.type = "button";
-                    deleteEveryoneButton.className = "delete-message-btn";
+                    deleteEveryoneButton.className = "delete-everyone";
                     deleteEveryoneButton.textContent = "Delete for everyone";
 
-                    deleteEveryoneButton.addEventListener("click", function () {
+                    deleteEveryoneButton.addEventListener("click", function (event) {
+
+                        event.stopPropagation();
+
+                        dropdown.classList.remove("show");
+
                         deleteMessage(msg.id);
+
                     });
 
-                    bubble.appendChild(deleteEveryoneButton);
+                    dropdown.appendChild(deleteEveryoneButton);
                 }
-}
+
+           
+                menuButton.addEventListener("click", function (event) {
+
+                    event.stopPropagation();
+
+                  
+                    document.querySelectorAll(".message-dropdown.show")
+                        .forEach(function (menu) {
+                            if (menu !== dropdown) {
+                                menu.classList.remove("show");
+                            }
+                        });
+
+                    dropdown.classList.toggle("show");
+
+                });
+
+                actions.appendChild(menuButton);
+                actions.appendChild(dropdown);
+                messageHeader.appendChild(actions);
+                actions.style.marginTop = "0";
+                actions.style.flexShrink = "0";
+
+            }
             bubble.appendChild(time);
 
             row.appendChild(bubble);
@@ -813,8 +929,15 @@ ViewData["Title"] = "Private Chat";
         messagesList.scrollTop = messagesList.scrollHeight;
 
     }
+    
+    document.addEventListener("click", function () {
 
+        document.querySelectorAll(".message-dropdown.show")
+            .forEach(function (menu) {
+                menu.classList.remove("show");
+            });
 
+    });
  
 
     connection.on("LoadPrivateMessages", function (messages) {
