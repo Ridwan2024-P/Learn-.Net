@@ -457,8 +457,11 @@ ViewData["Title"] = "Private Chat";
         </div>
         <div class="chat-main">
 
-            <div class="chat-header">
-                <h5 id="chatUserName">SignalR Private Chat</h5>
+            <div class="chat-header"> 
+                <div style="display: flex; align-items: center; gap: 10px;">
+                <h5 id="chatUserName">SignalR Private Chat </h5>
+                <small id="chatUserStatus" style="font-size:12px; margin-top:5px;"></small>
+                </div>
                 <small id="chatUserEmail">Select a user to start chatting</small>
             </div>
 
@@ -508,12 +511,16 @@ ViewData["Title"] = "Private Chat";
     const messageInput = document.getElementById("messageInput");
     const sendButton = document.getElementById("sendButton");
     const typingsStatus = document.getElementById("typingsStatus");
+    const chatUserStatus = document.getElementById("chatUserStatus");
+
+    
     
 
     let selectedUser = null;
     let allMessages = [];
     let searchTimer;
     let typingTimer;
+    let onlineUserIds = new Set();
     
 
     const connection = new signalR.HubConnectionBuilder()
@@ -534,6 +541,16 @@ ViewData["Title"] = "Private Chat";
             minute: "2-digit",
             hour12: true
         });
+    }
+
+    function updateSelectedUserStatus() {
+        if (!selectedUser) {
+            chatUserStatus.textContent = "";
+            return;
+        }
+        const isOnline = onlineUserIds.has(selectedUser.id);
+        chatUserStatus.textContent = isOnline ? " Online" : "Offline";
+        chatUserStatus.style.color = isOnline ? "#25d366" : "#d9fdd3";
     }
 
 
@@ -615,6 +632,27 @@ ViewData["Title"] = "Private Chat";
 
     connection.on("UnreadCountUpdated", function (count) {
         console.log("Total unread messages:", count);
+    });
+
+    connection.on("OnlineUsers", function (userIds) {
+
+        onlineUserIds = new Set(userIds.map(String));
+
+        updateSelectedUserStatus();
+    });
+
+    connection.on("UserStatusChanged", function (userId, isOnline) {
+
+        userId = String(userId);
+
+        if (isOnline) {
+            onlineUserIds.add(userId);
+        }
+        else {
+            onlineUserIds.delete(userId);
+        }
+
+        updateSelectedUserStatus();
     });
     
 
@@ -734,6 +772,7 @@ ViewData["Title"] = "Private Chat";
 
         chatUserName.textContent = user.fullName;
         chatUserEmail.textContent = user.email;
+        updateSelectedUserStatus();
 
         messageInput.disabled = false;
         sendButton.disabled = false;
@@ -1235,6 +1274,7 @@ ViewData["Title"] = "Private Chat";
         .then(async function () {
 
             console.log("SignalR Connected Successfully");
+            await connection.invoke("GetOnlineUsers");
 
             await loadConversations();
 

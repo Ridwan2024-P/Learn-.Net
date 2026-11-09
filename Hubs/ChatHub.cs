@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using SignalRMvcDemo.Data;
 using SignalRMvcDemo.Migrations;
 using SignalRMvcDemo.Models;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SignalRMvcDemo.Hubs;
 
@@ -12,6 +14,10 @@ namespace SignalRMvcDemo.Hubs;
 public class ChatHub : Hub
 {
     private readonly ApplicationDbContext _context;
+    
+    private static readonly Dictionary<string, HashSet<string>> OnlineUsers = new();
+
+    private static readonly object OnlineLock = new();
 
     public ChatHub(ApplicationDbContext context)
     {
@@ -330,4 +336,67 @@ public class ChatHub : Hub
             senderId
         );
     }
+   
+    public override async Task OnConnectedAsync()
+    {
+        var userId = Context.UserIdentifier;
+
+        if (!string.IsNullOrEmpty(userId)) {
+            bool isFirstConnection;
+            lock (OnlineLock) {
+                isFirstConnection = !OnlineUsers.ContainsKey(userId);
+                if (isFirstConnection) {
+                    OnlineUsers[userId] = new HashSet<string>();
+                }
+                OnlineUsers[userId].Add(Context.ConnectionId);
+            }
+            if (isFirstConnection) {
+                await Clients.All.SendAsync(
+                    "UserStatusChanged",
+                    userId,
+                    true
+                );
+            }
+        }
+
+        await base.OnConnectedAsync();
+    }
+    
+    
+    public override async Task OnDisconnectedAsync(Exception? exception) {
+        var userId = Context.UserIdentifier;
+        bool isOffline = false;
+        if (!string.IsNullOrEmpty(userId)) {
+            lock (OnlineLock) {
+                if (OnlineUsers.TryGetValue(userId, out var connections)) {
+                    connections.Remove(Context.ConnectionId);
+                    if (connections.Count == 0) {
+                        OnlineUsers.Remove(userId);
+                        isOffline = true;
+                    }
+                }
+            }
+
+            if (isOffline) {
+                await Clients.All.SendAsync(
+                    "UserStatusChanged",
+                    userId,
+                    false
+                );
+            }
+        }
+        await base.OnDisconnectedAsync(exception);
+    }
+    public async Task GetOnlineUsers() {
+        List<string> onlineUserIds;
+        lock (OnlineLock) {
+            onlineUserIds = OnlineUsers.Keys.ToList();
+        }
+        await Clients.Caller.SendAsync(
+            "OnlineUsers",
+            onlineUserIds
+        );
+    }
+    
+    
 }
