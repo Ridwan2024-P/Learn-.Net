@@ -336,9 +336,9 @@ ViewData["Title"] = "Private Chat";
         .message-dropdown {
             display: none;
             position: absolute;
-            top: -52px;
+         bottom: -52px;
           right: -22px;
-            min-width: 175px;
+            min-width: 110px;
             background: white;
             border-radius: 8px;
             box-shadow: 0 3px 12px rgba(0,0,0,0.18);
@@ -446,7 +446,7 @@ ViewData["Title"] = "Private Chat";
             </div>
 
             <div class="conversation-heading">Recent Chats</div>
-
+    
             <div id="conversationList" class="conversation-list">
                 <div class="search-message">Loading conversations...</div>
             </div>
@@ -923,6 +923,23 @@ ViewData["Title"] = "Private Chat";
             }
             bubble.appendChild(time);
 
+            if (isMine && !msg.isDeleted) {
+
+                const status = document.createElement("span");
+
+                status.id = `status-${msg.id}`;
+
+                status.style.marginLeft = "5px";
+                status.style.fontSize = "12px";
+                status.style.fontWeight = "bold";
+
+                status.textContent = msg.isRead ? "✓✓" : "✓";
+
+                status.style.color = msg.isRead ? "#53bdeb" : "#777";
+
+                time.appendChild(status);
+            }
+
             row.appendChild(bubble);
 
             messagesList.appendChild(row);
@@ -965,7 +982,9 @@ ViewData["Title"] = "Private Chat";
 
                 isDeletedForSender: msg.isDeletedForSender ?? msg.IsDeletedForSender ?? false,
 
-                isDeletedForReceiver: msg.isDeletedForReceiver ?? msg.IsDeletedForReceiver ?? false
+                isDeletedForReceiver: msg.isDeletedForReceiver ?? msg.IsDeletedForReceiver ?? false,
+
+                isRead: msg.isRead ?? msg.IsRead ?? false,
 
             };
 
@@ -998,7 +1017,9 @@ ViewData["Title"] = "Private Chat";
 
                 isDeletedForSender: msg.isDeletedForSender ?? msg.IsDeletedForSender ?? false,
 
-                isDeletedForReceiver: msg.isDeletedForReceiver ?? msg.IsDeletedForReceiver ?? false
+                isDeletedForReceiver: msg.isDeletedForReceiver ?? msg.IsDeletedForReceiver ?? false,
+
+                isRead: msg.isRead ?? msg.IsRead ?? false,
             });
 
             renderMessages();
@@ -1036,7 +1057,28 @@ ViewData["Title"] = "Private Chat";
 
     });
 
+    connection.on("MessagesSeen", function (messageIds) {
 
+        messageIds.forEach(function (id) {
+
+            const message = allMessages.find(
+                m => String(m.id) === String(id)
+            );
+
+            if (message) {
+                message.isRead = true;
+            }
+
+            const status = document.getElementById(`status-${id}`);
+
+            if (status) {
+                status.textContent = "✓✓";
+                status.style.color = "#53bdeb";
+            }
+
+        });
+
+    });
 
     connection.on("UserTyping", function (senderId) {
 

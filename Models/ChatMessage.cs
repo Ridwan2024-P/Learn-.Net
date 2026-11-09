@@ -21,7 +21,10 @@ public class ChatMessage
     public bool IsDeletedForSender { get; set; } = false;                         
     
     public bool IsDeletedForReceiver { get; set; } = false;
-    
-    
-    
+
+    public bool IsSeen { get; set; } = false;
+
+
+
+
 }

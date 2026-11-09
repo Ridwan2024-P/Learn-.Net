@@ -97,7 +97,7 @@ public class ChatHub : Hub
             throw new HubException("User not found.");
        
         await MarkMessagesAsRead(otherUserId);
-
+        
         var messages = await _context.ChatMessages
             .Where(m =>
                 (m.SenderId == currentUserId &&
@@ -121,6 +121,7 @@ public class ChatHub : Hub
         await Clients.Users(currentUserId, otherUserId)
             .SendAsync("ConversationsUpdated");
     }
+    
     
     public async Task MarkMessagesAsRead(string senderId)
     {
@@ -147,12 +148,21 @@ public class ChatHub : Hub
         {
             msg.IsRead = true;
         }
-
         await _context.SaveChangesAsync();
-        await SendUnreadCount(currentUserId);
+        
+        var messageIds = unreadMessages
+            .Select(m => m.Id)
+            .ToList();
+
         await Clients.User(senderId)
+            .SendAsync("MessagesSeen", messageIds);
+
+        await SendUnreadCount(currentUserId);
+
+        await Clients.Users(senderId, currentUserId)
             .SendAsync("ConversationsUpdated");
     }
+
 
 
     public async Task GetUnreadMessageCount()
