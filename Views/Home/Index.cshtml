@@ -233,10 +233,14 @@ ViewData["Title"] = "Private Chat";
         }
 
         .chat-input-area {
-            display: flex;
+            display: none;
             gap: 10px;
             padding: 15px;
             background: #f7f7f7;
+        }
+        
+        .chat-input-area.show{
+            display: flex;
         }
 
         .chat-input-area input {
@@ -473,7 +477,7 @@ ViewData["Title"] = "Private Chat";
 
             <div id="typingsStatus" class="typing-status"></div>
 
-            <div class="chat-input-area">
+            <div class="chat-input-area" id="chatInputArea">
 
                 <input id="messageInput"
                        type="text"
@@ -512,6 +516,7 @@ ViewData["Title"] = "Private Chat";
     const sendButton = document.getElementById("sendButton");
     const typingsStatus = document.getElementById("typingsStatus");
     const chatUserStatus = document.getElementById("chatUserStatus");
+    const chatInputArea = document.getElementById("chatInputArea");
 
     
     
@@ -766,6 +771,7 @@ ViewData["Title"] = "Private Chat";
         }
 
         selectedUser = user;
+        chatInputArea.classList.add("show");
         searchResults.style.display = "none";
 
         allMessages = [];

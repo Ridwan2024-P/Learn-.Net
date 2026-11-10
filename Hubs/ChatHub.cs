@@ -3,10 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using SignalRMvcDemo.Data;
-using SignalRMvcDemo.Migrations;
 using SignalRMvcDemo.Models;
-using System.Collections.Generic;
-using System.Linq;
+
 
 namespace SignalRMvcDemo.Hubs;
 
