@@ -762,7 +762,7 @@ ViewData["Title"] = "Private Chat";
 
 
 
-
+    let draftMessages = new Map();
     async function selectUser(user) {
 
         if (connection.state !== signalR.HubConnectionState.Connected) {
@@ -770,12 +770,17 @@ ViewData["Title"] = "Private Chat";
             return;
         }
 
+        if (selectedUser) {
+            draftMessages.set(selectedUser.id, messageInput.value);
+        }
+        
         selectedUser = user;
+        
         chatInputArea.classList.add("show");
         searchResults.style.display = "none";
-
+        messageInput.value = draftMessages.get(user.id) || "";
         allMessages = [];
-
+        
         chatUserName.textContent = user.fullName;
         chatUserEmail.textContent = user.email;
         updateSelectedUserStatus();
@@ -806,7 +811,11 @@ ViewData["Title"] = "Private Chat";
 
         }
     }
-
+    messageInput.addEventListener("input", function () {
+        if (selectedUser) {
+            draftMessages.set(selectedUser.id, messageInput.value);
+        }
+});
 
 
 
